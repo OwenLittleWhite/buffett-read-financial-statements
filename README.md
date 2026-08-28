@@ -1,6 +1,6 @@
 # Buffett Read Financial Statements
 
-一个用于中国 A 股财报抓取、结构化存储和巴菲特式财务指标分析的 Codex Skill。
+一个用于中国 A 股财报抓取、结构化存储和巴菲特式财务指标分析的 AI Agent Skill。
 
 主要能力：
 
@@ -14,16 +14,24 @@
 
 ## 安装
 
-将仓库克隆到 Codex Skills 目录：
+把这句话发给支持 Skills 的 Agent：
 
-```bash
-git clone https://github.com/OwenLittleWhite/buffett-read-financial-statements.git \
-  ~/.codex/skills/buffett-read-financial-statements
+```text
+请安装并验证这个 Skill：https://github.com/OwenLittleWhite/buffett-read-financial-statements
 ```
 
-重新打开 Codex 会话后，可以直接提出诸如“抓取贵州茅台近十年财报并按巴菲特指标分析”的请求。
+## 使用示例
 
-## 直接运行
+```text
+请使用这个 Skill 分析贵州茅台（SH600519）最近十年的财报。
+```
+
+```text
+请使用这个 Skill，对比贵州茅台、五粮液、古井贡酒、泸州老窖和山西汾酒
+最近十年的财务指标，并生成完整指标表和彩色评分报告。
+```
+
+## 手动运行脚本（可选）
 
 脚本仅依赖 Python 标准库，建议使用 Python 3.10 或更高版本。
 
