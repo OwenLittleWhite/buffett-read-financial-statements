@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "name": "巴菲特好公司评分卡试行版",
+  "minimum_coverage_for_ranking": 0.8,
+  "categories": [
+    {"id": "profitability", "label": "盈利能力与护城河", "weight": 30},
+    {"id": "growth", "label": "长期增长持续性", "weight": 20},
+    {"id": "safety", "label": "资产负债与现金安全", "weight": 20},
+    {"id": "capital", "label": "资本使用质量", "weight": 20},
+    {"id": "valuation", "label": "当前买入估值", "weight": 10}
+  ],
+  "metrics": [
+    {"id": "gross_margin_persistence", "label": "毛利率≥40%持续性", "category": "profitability", "weight": 9, "evaluator": "persistence", "path": "gross_margin", "count": "years_ge_40", "available": "available", "pass_ratio": 1.0, "required_available": 10, "winner_tiebreak_path": "gross_margin.average", "winner_direction": "higher"},
+    {"id": "expense_to_gross_profit", "label": "销管费/毛利<30%持续性", "category": "profitability", "weight": 5, "evaluator": "persistence", "path": "expense_to_gross_profit", "count": "years_lt_30", "available": "available", "pass_ratio": 1.0, "required_available": 10},
+    {"id": "interest_burden", "label": "利息/营业利润<15%持续性", "category": "profitability", "weight": 4, "evaluator": "persistence", "path": "interest_to_operating_profit", "count": "years_lt_15", "available": "available", "pass_ratio": 1.0, "required_available": 10},
+    {"id": "net_margin_persistence", "label": "净利率≥20%持续性", "category": "profitability", "weight": 8, "evaluator": "persistence", "path": "net_profit", "count": "years_ge_20", "available": "margin_available", "pass_ratio": 1.0, "required_available": 10, "winner_tiebreak_path": "net_profit.latest_margin", "winner_direction": "higher"},
+    {"id": "receivable_to_sales", "label": "应收账款/销售（低优）", "category": "profitability", "weight": 4, "evaluator": "relative", "path": "accounts_receivable_to_sales.average", "direction": "lower", "format": "percent"},
+
+    {"id": "net_profit_trend", "label": "净利润上涨持续性", "category": "growth", "weight": 5, "evaluator": "comparison_ratio", "path": "net_profit", "count": "rising", "available": "comparisons", "pass_ratio": 0.6666666666666666},
+    {"id": "basic_eps_trend", "label": "基本EPS趋势", "category": "growth", "weight": 5, "evaluator": "trend_level", "path": "basic_eps.level"},
+    {"id": "pretax_eps_trend", "label": "每股税前利润趋势", "category": "growth", "weight": 5, "evaluator": "trend_level", "path": "equity_bond.level"},
+    {"id": "latest_pretax_eps_yoy", "label": "每股税前利润最新同比", "category": "growth", "weight": 2, "evaluator": "signed_growth", "path": "equity_bond.latest_pretax_profit_per_share_yoy_growth", "pass_threshold": 0.0},
+    {"id": "retained_earnings_growth", "label": "留存收益CAGR", "category": "growth", "weight": 3, "evaluator": "relative_with_threshold", "path": "retained_earnings_and_equity_returns.retained_earnings_cagr", "direction": "higher", "pass_threshold": 0.0, "format": "percent"},
+
+    {"id": "cash_to_liabilities", "label": "货币资金/总负债", "category": "safety", "weight": 4, "evaluator": "relative", "path": "cash_safety.latest_cash_to_total_liabilities", "direction": "higher", "format": "percent"},
+    {"id": "operating_cash_quality", "label": "七年经营现金质量", "category": "safety", "weight": 6, "evaluator": "cash_quality", "path": "seven_year_cash_sources"},
+    {"id": "debt_to_equity", "label": "负债权益比<0.8", "category": "safety", "weight": 4, "evaluator": "debt_to_equity", "path": "debt_structure.latest_debt_to_equity", "pass_threshold": 0.8},
+    {"id": "long_term_debt_payoff", "label": "长期债务3—4年偿还", "category": "safety", "weight": 4, "evaluator": "debt_payoff", "path": "debt_structure.latest_complete_long_term_debt_payoff_years", "pass_threshold": 4.0},
+    {"id": "preferred_stock", "label": "资本结构无优先股", "category": "safety", "weight": 2, "evaluator": "preferred_stock", "path": "preferred_stock_capital_structure.classification"},
+
+    {"id": "capex_burden", "label": "十年资本开支/净利润", "category": "capital", "weight": 8, "evaluator": "capex", "path": "fixed_asset_stability.ten_year_capex_to_net_profit_classification", "value_path": "fixed_asset_stability.ten_year_capex_to_net_profit", "winner_tiebreak_path": "fixed_asset_stability.ten_year_capex_to_net_profit", "winner_direction": "lower"},
+    {"id": "roe_leverage", "label": "ROE与低杠杆联合", "category": "capital", "weight": 6, "evaluator": "relative_composite", "components": [{"path": "retained_earnings_and_equity_returns.return_on_equity_average", "direction": "higher"}, {"path": "retained_earnings_and_equity_returns.equity_multiplier_average", "direction": "lower"}]},
+    {"id": "fixed_asset_stability", "label": "固定资产稳定性", "category": "capital", "weight": 4, "evaluator": "relative", "path": "fixed_asset_stability.average_absolute_yoy_change", "direction": "lower", "format": "percent"},
+    {"id": "inventory_profit_alignment", "label": "存货增长与利润同增", "category": "capital", "weight": 2, "evaluator": "comparison_ratio", "path": "inventory_profit_alignment", "count": "inventory_and_profit_both_growth", "available": "inventory_growth_with_profit_comparable", "pass_ratio": 0.6666666666666666},
+
+    {"id": "current_pretax_yield", "label": "当前买入成本税前收益率", "category": "valuation", "weight": 10, "evaluator": "relative", "path": "equity_bond.current_buyin.pretax_earnings_yield", "direction": "higher", "format": "percent"}
+  ],
+  "unscored_risk_prompts": [
+    "研发开支及研发依赖",
+    "商誉连续增长与并购质量",
+    "无形资产及表外竞争优势",
+    "长期投资的被投企业质量",
+    "ROA过高时的持续性风险",
+    "流动比率小于1的特殊解释",
+    "回购计划、库存股与注销证据",
+    "有效所得税率异常波动"
+  ]
+}
