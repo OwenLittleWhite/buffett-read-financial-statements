@@ -41,11 +41,16 @@ python3 scripts/fetch_eastmoney_financials.py SH600519 --years 10
 python3 scripts/build_analysis_bundle.py \
   SH600519 SZ000858 SZ000596 SZ000568 SH600809 \
   --start-year 2016 \
-  --end-year 2025 \
-  --output-prefix data/analysis/liquor_2016_2025
+  --end-year 2025
 ```
 
-数据会写入本地 `data/` 目录。该目录已被 Git 忽略，不会随代码提交。
+脚本应从当前 session 的 workspace 运行。数据默认写入 workspace 下独立的
+`buffett-read-financial-statements/data/` 目录；数据库、原始响应、CSV 和分析报告
+不会写入 Codex 的 Skill 安装目录，也不会因为重新安装 Skill 被覆盖。
+
+如果 workspace 本身已经叫 `buffett-read-financial-statements`，则直接使用其中的
+`data/`，不会再嵌套一层同名目录。`--output`、`--database` 和 `--output-prefix`
+仍可用于显式指定其他位置。
 
 ## 重要说明
 

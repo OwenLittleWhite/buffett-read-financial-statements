@@ -9,9 +9,14 @@ import subprocess
 import sys
 from pathlib import Path
 
+try:
+    from workspace_paths import default_analysis_directory, default_database_path
+except ModuleNotFoundError:
+    from scripts.workspace_paths import default_analysis_directory, default_database_path
+
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_DATABASE = ROOT / "data" / "eastmoney_financials.sqlite3"
+DEFAULT_DATABASE = default_database_path()
 
 
 def parse_args() -> argparse.Namespace:
@@ -22,8 +27,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output-prefix",
         type=Path,
-        required=True,
-        help="Path prefix; suffixes _metrics and _scorecard are added",
+        help=(
+            "Path prefix; suffixes _metrics and _scorecard are added "
+            "(default: workspace data/analysis/<symbols>_<years>)"
+        ),
     )
     parser.add_argument("--database", type=Path, default=DEFAULT_DATABASE)
     parser.add_argument("--financial-symbol", action="append", default=[])
@@ -37,7 +44,13 @@ def main() -> int:
     args = parse_args()
     if args.start_year > args.end_year:
         raise SystemExit("--start-year cannot be later than --end-year")
-    prefix = args.output_prefix.expanduser().resolve()
+    if args.output_prefix is None:
+        symbol_slug = "_".join(symbol.upper() for symbol in args.symbols)
+        prefix = default_analysis_directory() / (
+            f"{symbol_slug}_{args.start_year}_{args.end_year}"
+        )
+    else:
+        prefix = args.output_prefix.expanduser().resolve()
     prefix.parent.mkdir(parents=True, exist_ok=True)
     detailed_json = Path(f"{prefix}_metrics.json")
     detailed_markdown = Path(f"{prefix}_metrics.md")

@@ -30,6 +30,11 @@ from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
+try:
+    from workspace_paths import default_data_directory
+except ModuleNotFoundError:
+    from scripts.workspace_paths import default_data_directory
+
 
 BASE_URL = "https://emweb.securities.eastmoney.com/PC_HSF10/NewFinanceAnalysis"
 SOURCE_PAGE = "https://emweb.securities.eastmoney.com/pc_hsf10/pages/index.html"
@@ -63,7 +68,7 @@ USER_AGENT = (
 )
 MAX_FISCAL_YEARS = 20
 REQUEST_DELAY_SECONDS = 2
-DEFAULT_OUTPUT = Path(__file__).resolve().parents[1] / "data"
+DEFAULT_OUTPUT = default_data_directory()
 DIRECT_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 STATEMENTS = {

@@ -27,8 +27,13 @@ except ModuleNotFoundError:
         fetch_json,
     )
 
+try:
+    from workspace_paths import default_database_path
+except ModuleNotFoundError:
+    from scripts.workspace_paths import default_database_path
 
-DEFAULT_DATABASE = Path(__file__).resolve().parents[1] / "data" / "eastmoney_financials.sqlite3"
+
+DEFAULT_DATABASE = default_database_path()
 CURRENT_QUOTE_URLS = (
     "https://push2delay.eastmoney.com/api/qt/stock/get",
     "https://push2.eastmoney.com/api/qt/stock/get",

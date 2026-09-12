@@ -4,18 +4,27 @@ The fetcher stores ten fiscal years by default and permits up to twenty fiscal y
 
 ## Output files
 
+All runtime files live under the active session workspace rather than inside the installed Skill package. The default root is `<workspace>/buffett-read-financial-statements/`. If the workspace already has that name, it is used directly.
+
 ```text
-data/
-|-- eastmoney_financials.sqlite3
-|-- csv/
-|   |-- SH600809_2016_2025_all_balance.csv
-|   |-- SH600809_2016_2025_all_income.csv
-|   |-- SH600809_2016_2025_all_cashflow.csv
-|   |-- SH600809_2016_2025_all_market.csv
-|   |-- SH600809_2016_2025_all_capital_changes.csv
-|   `-- SH600809_2016_2025_all_repurchases.csv
-`-- raw/
-    `-- SH600809_2016_2025_all.json
+<workspace>/buffett-read-financial-statements/
+`-- data/
+    |-- eastmoney_financials.sqlite3
+    |-- analysis/
+    |   |-- <symbols>_<years>_metrics.md
+    |   |-- <symbols>_<years>_metrics.json
+    |   |-- <symbols>_<years>_scorecard.html
+    |   |-- <symbols>_<years>_scorecard.md
+    |   `-- <symbols>_<years>_scorecard.json
+    |-- csv/
+    |   |-- SH600809_2016_2025_all_balance.csv
+    |   |-- SH600809_2016_2025_all_income.csv
+    |   |-- SH600809_2016_2025_all_cashflow.csv
+    |   |-- SH600809_2016_2025_all_market.csv
+    |   |-- SH600809_2016_2025_all_capital_changes.csv
+    |   `-- SH600809_2016_2025_all_repurchases.csv
+    `-- raw/
+        `-- SH600809_2016_2025_all.json
 ```
 
 CSV and raw JSON filenames are stable for the same symbol, fiscal range, and period filter. Repeating the same command replaces those files.

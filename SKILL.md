@@ -9,7 +9,9 @@ Use this skill when the user wants to collect or analyze an A-share company's th
 
 ## Data collection
 
-Run `scripts/fetch_eastmoney_financials.py` before analysis when local data is missing or the requested range has changed.
+Run scripts with the active session workspace as the working directory, never the installed Skill directory. Runtime storage defaults to `<workspace>/buffett-read-financial-statements/data/`; this keeps databases and reports outside the replaceable Skill package. If the workspace itself is already named `buffett-read-financial-statements`, use its existing `data/` directory instead of nesting another directory.
+
+Run `scripts/fetch_eastmoney_financials.py` before analysis when workspace data is missing or the requested range has changed.
 
 ```bash
 python3 scripts/fetch_eastmoney_financials.py SH600809 --years 10
@@ -48,9 +50,10 @@ For a multi-company delivery, prefer the bundle command so the current quote is 
 ```bash
 python3 scripts/build_analysis_bundle.py \
   SH600519 SZ000858 SZ000596 SZ000568 SH600809 \
-  --start-year 2016 --end-year 2025 \
-  --output-prefix data/analysis/liquor_2016_2025
+  --start-year 2016 --end-year 2025
 ```
+
+When `--output-prefix` is omitted, the five report files use a stable symbol-and-year prefix under `<workspace>/buffett-read-financial-statements/data/analysis/`. Explicit `--output`, `--database`, and `--output-prefix` arguments still override these defaults.
 
 The bundle must retain five separate deliverables with stable suffixes:
 
