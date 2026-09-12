@@ -413,6 +413,8 @@ def build_scorecard(companies: list[dict[str, Any]], config: dict[str, Any]) -> 
             {
                 "symbol": company["symbol"],
                 "name": company["name"],
+                "report_dates": company.get("report_dates", []),
+                "annual_trends": company.get("annual_trends", {}),
                 "coverage": coverage,
                 "quality_score": quality_score,
                 "valuation_score": category_scores.get("valuation"),
@@ -445,6 +447,115 @@ def icon(result: dict[str, Any]) -> str:
 
 def score_text(value: float | None) -> str:
     return "—" if value is None else f"{value:.1f}"
+
+
+def sparkline_value(value: float, kind: str) -> str:
+    if kind == "hundred_million":
+        return f"{value / 100_000_000:.1f}亿"
+    return f"{value:.2f}"
+
+
+def combined_trend_svg(
+    dates: list[str],
+    annual_trends: dict[str, list[Any]],
+    *,
+    company_name: str,
+    series_specs: list[dict[str, str]],
+) -> str:
+    """Plot differently scaled metrics together as first-valid-year index values."""
+    normalized_series: list[dict[str, Any]] = []
+    for spec in series_specs:
+        values = [as_float(value) for value in annual_trends.get(spec["key"], [])]
+        values = (values + [None] * len(dates))[: len(dates)]
+        baseline = next((value for value in values if value not in {None, 0}), None)
+        if baseline is None or sum(value is not None for value in values) < 2:
+            continue
+        normalized = [
+            value / baseline * 100 if value is not None else None for value in values
+        ]
+        normalized_series.append({**spec, "values": values, "normalized": normalized})
+
+    all_normalized = [
+        value
+        for series in normalized_series
+        for value in series["normalized"]
+        if value is not None
+    ]
+    if not all_normalized or len(dates) < 2:
+        return "<div class='trend-missing'>数据不足</div>"
+
+    width = 248.0
+    height = 140.0
+    left = 28.0
+    right = 8.0
+    top = 10.0
+    bottom = 23.0
+    minimum = min(all_normalized)
+    maximum = max(all_normalized)
+    padding = (maximum - minimum) * 0.08 or 10.0
+    minimum -= padding
+    maximum += padding
+
+    def x_position(index: int) -> float:
+        return left + index / (len(dates) - 1) * (width - left - right)
+
+    def y_position(value: float) -> float:
+        return top + (maximum - value) / (maximum - minimum) * (
+            height - top - bottom
+        )
+
+    escaped_company = html.escape(company_name)
+    parts = [
+        f"<svg class='combined-trend' viewBox='0 0 {width:g} {height:g}' role='img' aria-label='{escaped_company}四指标长期趋势'>",
+        f"<title>{escaped_company}四指标长期趋势，首个有效年度为100</title>",
+    ]
+    for fraction in (0.0, 0.5, 1.0):
+        guide_value = maximum - fraction * (maximum - minimum)
+        guide_y = y_position(guide_value)
+        parts.append(
+            f"<line class='trend-guide' x1='{left:g}' y1='{guide_y:.2f}' x2='{width - right:g}' y2='{guide_y:.2f}'/>"
+        )
+        parts.append(
+            f"<text class='trend-axis-label' x='{left - 4:g}' y='{guide_y + 3:.2f}'>{guide_value:.0f}</text>"
+        )
+
+    for series in normalized_series:
+        segments: list[list[tuple[float, float]]] = []
+        current: list[tuple[float, float]] = []
+        for index, value in enumerate(series["normalized"]):
+            if value is None:
+                if len(current) >= 2:
+                    segments.append(current)
+                current = []
+                continue
+            current.append((x_position(index), y_position(value)))
+        if len(current) >= 2:
+            segments.append(current)
+        for segment in segments:
+            coordinate_text = " ".join(f"{x:.2f},{y:.2f}" for x, y in segment)
+            parts.append(
+                f"<polyline class='trend-line' style='stroke:{series['color']}' points='{coordinate_text}'/>"
+            )
+        for index, (actual, normalized) in enumerate(
+            zip(series["values"], series["normalized"])
+        ):
+            if actual is None or normalized is None:
+                continue
+            tooltip = html.escape(
+                f"{series['label']}｜{dates[index][:4]}｜实际值 {sparkline_value(actual, series['value_kind'])}｜指数 {normalized:.1f}"
+            )
+            parts.append(
+                f"<circle class='trend-point' style='fill:{series['color']}' cx='{x_position(index):.2f}' cy='{y_position(normalized):.2f}' r='2.1'><title>{tooltip}</title></circle>"
+            )
+
+    parts.extend(
+        [
+            f"<text class='trend-year' x='{left:g}' y='{height - 4:g}'>{html.escape(dates[0][:4])}</text>",
+            f"<text class='trend-year trend-year-end' x='{width - right:g}' y='{height - 4:g}'>{html.escape(dates[-1][:4])}</text>",
+            "</svg>",
+        ]
+    )
+    return "".join(parts)
 
 
 def markdown_report(scorecard: dict[str, Any]) -> str:
@@ -515,12 +626,19 @@ def markdown_report(scorecard: dict[str, Any]) -> str:
 
 def html_report(scorecard: dict[str, Any]) -> str:
     companies = scorecard["companies"]
+    trend_series = [
+        {"key": "net_profit", "label": "净利润", "value_kind": "hundred_million", "color": "#2563eb"},
+        {"key": "basic_eps", "label": "基本EPS", "value_kind": "decimal", "color": "#ea580c"},
+        {"key": "pretax_profit_per_share", "label": "每股税前利润", "value_kind": "decimal", "color": "#16a34a"},
+        {"key": "retained_earnings", "label": "留存收益", "value_kind": "hundred_million", "color": "#9333ea"},
+    ]
     css = """
     :root{font-family:Inter,"PingFang SC","Microsoft YaHei",sans-serif;color:#172033;background:#f6f7fb}
     body{margin:0;padding:28px}.wrap{max-width:1480px;margin:auto}.card{background:white;border:1px solid #e5e7eb;border-radius:14px;padding:20px;margin:16px 0;box-shadow:0 4px 18px rgba(15,23,42,.05)}
     h1{margin:0 0 8px}h2{margin:0 0 14px;font-size:20px}.muted{color:#64748b}.legend{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0}
     table{width:100%;border-collapse:separate;border-spacing:0;font-size:14px;overflow:hidden}th,td{border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;padding:10px;vertical-align:top}th{background:#f8fafc;text-align:left;position:sticky;top:0}tr:first-child th{border-top:1px solid #e5e7eb}th:first-child,td:first-child{border-left:1px solid #e5e7eb}.num{text-align:right}.rank1{color:#b91c1c;font-weight:800}
     .red{background:#fee2e2;color:#991b1b}.orange{background:#ffedd5;color:#9a3412}.green{background:#dcfce7;color:#166534}.gray{background:#f1f5f9;color:#475569}.badge{display:inline-block;border-radius:999px;padding:2px 7px;font-size:12px;font-weight:700;margin-bottom:4px}.score{font-weight:800}.small{font-size:12px;opacity:.82}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.metric-table{overflow-x:auto}
+    .trend-panel-header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}.trend-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px}.trend-key{display:flex;align-items:center;gap:6px}.trend-swatch{width:18px;height:3px;border-radius:2px}.trend-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:14px}.trend-company{border:1px solid #e5e7eb;border-radius:10px;padding:10px;background:#fff}.trend-company h3{font-size:14px;margin:0 0 5px}.combined-trend{display:block;width:100%;min-width:210px;height:auto;overflow:visible}.trend-guide{stroke:#94a3b8;stroke-width:.7;opacity:.35}.trend-line{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.trend-point{stroke:white;stroke-width:.7}.trend-axis-label{fill:#64748b;font-size:8px;text-anchor:end}.trend-year{fill:#64748b;font-size:9px}.trend-year-end{text-anchor:end}.trend-missing{color:#94a3b8;padding:45px 0;text-align:center}
     """
     parts = [
         "<!doctype html><html lang='zh-CN'><head><meta charset='utf-8'>",
@@ -554,6 +672,28 @@ def html_report(scorecard: dict[str, Any]) -> str:
         parts.append("</tr>")
     parts.append("</table></div></section>")
     for category in scorecard["categories"]:
+        if category["id"] == "growth":
+            legend = "".join(
+                f"<span class='trend-key'><i class='trend-swatch' style='background:{series['color']}'></i>{html.escape(series['label'])}</span>"
+                for series in trend_series
+            )
+            parts.append(
+                "<section class='card'><div class='trend-panel-header'><div><h2>四指标长期趋势</h2>"
+                "<div class='small'>各指标首个有效年度=100；比较增长轨迹，不比较金额大小。悬停节点查看年份、实际值和指数。</div></div>"
+                f"<div class='trend-legend'>{legend}</div></div><div class='trend-grid'>"
+            )
+            for company in companies:
+                parts.append(
+                    f"<div class='trend-company'><h3>{html.escape(company['name'])}</h3>"
+                    + combined_trend_svg(
+                        company.get("report_dates", []),
+                        company.get("annual_trends", {}),
+                        company_name=company["name"],
+                        series_specs=trend_series,
+                    )
+                    + "</div>"
+                )
+            parts.append("</div></section>")
         parts.append(f"<section class='card'><h2>{html.escape(category['label'])}（{category['weight']}分）</h2><div class='metric-table'><table><tr><th>指标</th>")
         parts.extend(f"<th>{html.escape(company['name'])}</th>" for company in companies)
         parts.append("</tr>")

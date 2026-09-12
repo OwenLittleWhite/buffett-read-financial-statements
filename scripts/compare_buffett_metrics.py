@@ -967,6 +967,12 @@ def load_company(
         "name": company[0],
         "coverage": coverage,
         "report_dates": report_dates,
+        "annual_trends": {
+            "net_profit": net_profit_values,
+            "basic_eps": eps_values,
+            "pretax_profit_per_share": pretax_per_share,
+            "retained_earnings": retained_earnings,
+        },
         "gross_margin": {
             "average": average(gross),
             "minimum": min((x for x in gross if x is not None), default=None),
